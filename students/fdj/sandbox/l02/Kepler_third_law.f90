@@ -25,13 +25,31 @@ program calculate_period
     use kepler
     implicit none
     real :: a, M
+    integer :: period_int, period_plain
+    logical :: debugging = .false.
     real, parameter :: year_to_days = 365.25
     print *, 'Lets calculate the orbital period. Enter the semi-major axis and mass of your planet.'
+    read *, a, M
+
+    do while (a < 0 .or. M < 0) 
+        print *, 'Please insert positive values.'
+        read *, a, M
+    end do
+    
     print *, 'The period is:'
     print *, period(a, M), 'years.'
-    print *, period(a, M)*year_to_days, 'days.'
-    print *, int(period(a, M)*year_to_days), 'days.'
+    if (debugging .eqv. .true.) then
+        print *, "Plain assingment:"
+    end if
 
+    period_plain = period(a, M)*year_to_days
+    print *, period_plain, 'days.'
+
+    if (debugging .eqv. .true.) then
+        print *, "int( )"
+        period_int = int(period(a, M)*year_to_days)
+        print *, period_int, 'days.'
+    end if
 end program calculate_period
 
 
