@@ -6,6 +6,8 @@ logical :: lower, upper, low_in, up_in
 
 write(*,*) 'Write lumminosity L (in solar units), semi-major axis a (in AU), and eccentricity e, like: L, a, e'
 read(*,*) L, a, e
+if (abs(e)>=1) stop '0<e<1 only'
+if (e<0) stop 'only e>0'
 
 r_in = sqrt(L/1.1)
 r_out = sqrt(L/0.53)
@@ -25,4 +27,4 @@ if ((.not.(lower)) .and. (.not.(upper))) print*, 'Partly'
 if ((peri < r_in) .and. (apo < r_in)) print*, 'Never: too hot'
 if ((peri > r_out) .and. (apo > r_out)) print*, 'Never: too cold'
 
-end program Habitable
+end program
