@@ -1,0 +1,597 @@
+\input{../common}
+\subtitle{Lecture 6: Derived Types, Linked Lists, and Custom Operators}
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\section{Derived Types}
+
+\begin{frame}
+	\centering
+	\Huge \textbf{Derived Types}
+\end{frame}
+
+\begin{frame}[fragile]{Derived Types}
+
+\begin{columns}[T]
+  \column{0.5\textwidth}
+  \begin{block}{Example: 3D vector type}
+    \lstinputlisting[firstline=1,lastline=8]{ex_types.f90}
+  \end{block}
+  \begin{itemize}
+  \item Basic Fortran types can be combined to create more complex \textit{derived} types.
+  \item Derived type definitions should be placed in a module.
+  \end{itemize}
+
+  \column{0.5\textwidth}
+  \begin{block}{Example: type usage}
+  \lstinputlisting[firstline=10,lastline=16]{ex_types.f90}
+  \end{block}
+  \begin{itemize}
+  \item Variables are declared with \texttt{type(name)}.
+  \item A value is built with a constructor, which takes the components in the order of their definition.
+  \item Components can also be given by name: \texttt{vector3d(x=0.0, y=1.0, z=0.0)}.
+  \end{itemize}
+
+\end{columns}
+\end{frame}
+
+\begin{frame}[fragile]{Nested derived types}
+  Previously defined types can be used as components of other derived types.
+\begin{columns}[T,onlytextwidth]
+  \column{0.5\textwidth}
+  \begin{block}{Example: sphere}
+    \lstinputlisting[firstline=1,lastline=12]{ex_types_2.f90}
+  \end{block}
+
+    \column{0.49\textwidth}
+    \begin{block}{Example: sphere usage}
+    \lstinputlisting[firstline=14,lastline=20,basicstyle=\ttfamily\scriptsize]{ex_types_2.f90}
+  \end{block}
+  \end{columns}
+
+  \vspace{0.5em}
+  A component can also have a default value, and a constructor may then leave it out. If \texttt{sphere} declared \texttt{real :: radius = 1.0}, then \texttt{sphere(vector3d(0.0, 1.0, 0.0))} would be a sphere of radius 1.
+\end{frame}
+
+
+% --- Derived Type Assignment ---
+\begin{frame}[fragile]{Derived type assignment}
+  \begin{columns}[T]
+    \column{0.52\textwidth}
+    \begin{block}{Ways to assign}
+      \begin{itemize}
+        \item Component-by-component using \texttt{\%}.
+        \item As a whole object using a constructor.
+        \item Assignment between two objects of the same derived type is intrinsic.
+      \end{itemize}
+      Inside a constructor, a derived-type component such as \texttt{centre} is given as a value of its own type: a variable or another constructor.
+    \end{block}
+
+    \column{0.48\textwidth}
+\begin{lstlisting}[language=Fortran]
+type(vector3d) :: pt1
+type(sphere) :: s, ball
+
+! component by component
+pt1%x = 1.0
+s%radius = 3.0
+s%centre%x = 1.0
+
+! whole object with constructors
+pt1 = vector3d(1.0, 2.0, 3.0)
+s%centre = vector3d(1.0, 2.0, 3.0)
+s = sphere(s%centre, 10.0)
+s = sphere(vector3d(1.0, 2.0, 3.0), 10.0)
+
+! intrinsic assignment between objects
+ball = s
+\end{lstlisting}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[fragile]{Allocatable and pointer components}
+  \begin{columns}[T]
+    \begin{column}{0.45\textwidth}
+      \begin{itemize}
+        \item A component can be allocatable (since Fortran 2003) or a pointer.
+        \item Prefer allocatable components. They are freed automatically, and assignment copies their data (a \emph{deep copy}).
+        \item A pointer component is only pointer-assigned in a copy, so both objects then share one target.
+        \item Use pointer components for linked structures, such as a list node that points to the next node.
+      \end{itemize}
+    \end{column}
+
+    \begin{column}{0.55\textwidth}
+      \begin{lstlisting}
+module spectra
+  implicit none
+  type :: spectrum
+    character(len=:), allocatable :: name
+    real, allocatable :: flux(:)
+  end type spectrum
+end module spectra
+
+program components
+  use spectra
+  implicit none
+  type(spectrum) :: a, b
+  a = spectrum('Vega', [1.0, 2.0, 3.0])
+  b = a                  ! deep copy
+  b%flux(1) = 99.0
+  print *, a%flux        ! 1.0  2.0  3.0
+  print *, b%flux        ! 99.0  2.0  3.0
+end program components
+      \end{lstlisting}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[fragile]{Arrays of pointers}
+  \begin{columns}[T]
+    \column{0.52\textwidth}
+    \begin{block}{Notes}
+      \begin{itemize}
+        \item Fortran has no arrays of pointers: \texttt{real, pointer :: p(:)} is one pointer to an array.
+        \item To get an array of pointers, wrap a pointer in a derived type and make an array of that type.
+        \item You cannot reference the pointer component of the whole array in one go.
+        \item If desired, the container array could be \texttt{allocatable}.
+      \end{itemize}
+    \end{block}
+
+    \column{0.48\textwidth}
+\begin{lstlisting}[language=Fortran]
+module pointers
+  implicit none
+  type :: iptr
+    integer, pointer :: compon => null()
+  end type iptr
+end module pointers
+
+program pointer_array
+  use pointers
+  implicit none
+  type(iptr), dimension(100) :: ints
+  integer, target :: k = 5
+
+  ints(10)%compon => k        ! ok
+  print *, ints(10)%compon    ! ok: 5
+  ! print *, ints(:)%compon   ! not allowed
+end program pointer_array
+\end{lstlisting}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[fragile]{Derived type I/O}
+  \begin{columns}[T]
+    \column{0.52\textwidth}
+    \begin{block}{List-directed I/O}
+      \begin{itemize}
+        \item A derived type can be printed and read with \texttt{print *} and \texttt{read *} if it has no pointer or allocatable components (unless you write your own I/O procedure for it).
+        \item I/O proceeds component-by-component in order.
+      \end{itemize}
+      For the sphere \texttt{s}, the two statements on the right print the same values.
+    \end{block}
+
+    \column{0.48\textwidth}
+\begin{lstlisting}[language=Fortran]
+print *, s
+
+print *, s%centre%x, s%centre%y, &
+         s%centre%z, s%radius
+\end{lstlisting}
+  \end{columns}
+\end{frame}
+
+
+% --- Linked lists: drawing helpers ---
+% A cell is drawn as a value box and a pointer box with a dot in it.
+\tikzset{
+  llval/.style={draw, fill=blue!15, minimum width=0.7cm, minimum height=0.55cm, inner sep=0pt, font=\ttfamily\small},
+  llnext/.style={draw, fill=orange!25, minimum width=0.45cm, minimum height=0.55cm, inner sep=0pt},
+  llptr/.style={->, >=stealth, thick},
+  llvar/.style={font=\ttfamily\scriptsize, inner sep=1.5pt},
+}
+% \llcell[style]{name}{position}{value} creates the nodes (name)v and (name)n
+\newcommand{\llcell}[4][]{%
+  \node[llval, #1] (#2v) at (#3) {#4};
+  \node[llnext, #1, anchor=west] (#2n) at (#2v.east) {};
+  \fill (#2n.center) circle (1.3pt);
+}
+
+\section{Linked Lists}
+
+\begin{frame}
+	\centering
+	\Huge \textbf{Linked Lists}
+\end{frame}
+
+\begin{frame}[fragile]{Linked lists}
+  \centering
+  \begin{tikzpicture}
+    \node[llnext, label={[llvar]above:head}] (h) at (0,0) {};
+    \fill (h.center) circle (1.3pt);
+    \llcell{a}{1.7,0}{1}
+    \llcell{b}{3.8,0}{2}
+    \llcell{c}{5.9,0}{3}
+    \node[llvar, anchor=west] (nil) at (7.6,0) {null()};
+    \draw[llptr] (h.center) -- (av.west);
+    \draw[llptr] (an.center) -- (bv.west);
+    \draw[llptr] (bn.center) -- (cv.west);
+    \draw[llptr] (cn.center) -- (nil.west);
+    \node[llvar, below] at (av.south) {val};
+    \node[llvar, below] at (an.south) {next};
+  \end{tikzpicture}
+
+  \vspace{0.5em}
+  \begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+      \begin{itemize}
+        \item A linked list is a chain of cells. Each cell holds a value and a pointer to the next cell.
+        \item \texttt{head} points to the first cell. The pointer of the last cell is null.
+        \item Every cell is allocated separately, so the list grows and shrinks one cell at a time, without copying.
+        \item The price: there is no direct access to cell number $i$. You have to follow the pointers.
+      \end{itemize}
+    \end{column}
+
+    \begin{column}{0.5\textwidth}
+      \lstinputlisting[firstline=3,lastline=6]{linked_list.f90}
+      A type may contain a \emph{pointer} to its own type, which is what makes the chain possible.
+    \end{column}
+  \end{columns}
+\end{frame}
+
+
+\begin{frame}[fragile]{Linked lists: building a list}
+  \begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+      \centering
+      \begin{tikzpicture}
+        % One row per stage. The new cell is green and its new pointer is red.
+        \node[llvar] at (0.3,0.5) {head};
+        % start: the list is empty
+        \node[llvar, anchor=east] at (-0.05,0) {start};
+        \node[llnext] (h0) at (0.3,0) {};
+        \fill (h0.center) circle (1.3pt);
+        \node[llvar, anchor=west] (z0) at (0.85,0) {null()};
+        \draw[llptr] (h0.center) -- (z0.west);
+        % i = 3
+        \begin{scope}[yshift=-0.95cm]
+          \node[llvar, anchor=east] at (-0.05,0) {i = 3};
+          \node[llnext] (h) at (0.3,0) {};
+          \fill (h.center) circle (1.3pt);
+          \llcell[fill=green!25]{a}{1.1,0}{3}
+          \node[llvar, anchor=west] (z) at (2.25,0) {null()};
+          \draw[llptr] (h.center) -- (av.west);
+          \draw[llptr, red] (an.center) -- (z.west);
+        \end{scope}
+        % i = 2
+        \begin{scope}[yshift=-1.9cm]
+          \node[llvar, anchor=east] at (-0.05,0) {i = 2};
+          \node[llnext] (h) at (0.3,0) {};
+          \fill (h.center) circle (1.3pt);
+          \llcell[fill=green!25]{a}{1.1,0}{2}
+          \llcell{b}{2.6,0}{3}
+          \node[llvar, anchor=west] (z) at (3.75,0) {null()};
+          \draw[llptr] (h.center) -- (av.west);
+          \draw[llptr, red] (an.center) -- (bv.west);
+          \draw[llptr] (bn.center) -- (z.west);
+        \end{scope}
+        % i = 1
+        \begin{scope}[yshift=-2.85cm]
+          \node[llvar, anchor=east] at (-0.05,0) {i = 1};
+          \node[llnext] (h) at (0.3,0) {};
+          \fill (h.center) circle (1.3pt);
+          \llcell[fill=green!25]{a}{1.1,0}{1}
+          \llcell{b}{2.6,0}{2}
+          \llcell{c}{4.1,0}{3}
+          \node[llvar, anchor=west] (z) at (5.25,0) {null()};
+          \draw[llptr] (h.center) -- (av.west);
+          \draw[llptr, red] (an.center) -- (bv.west);
+          \draw[llptr] (bn.center) -- (cv.west);
+          \draw[llptr] (cn.center) -- (z.west);
+        \end{scope}
+      \end{tikzpicture}
+    \end{column}
+
+    \begin{column}{0.5\textwidth}
+      \lstinputlisting[firstline=12,lastline=22]{linked_list.f90}
+    \end{column}
+  \end{columns}
+
+  \vspace{0.8em}
+  \begin{itemize}
+    \item \texttt{head} starts as \texttt{null()}, so the list is empty.
+    \item Each new cell first points to the old first cell (red), and then \texttt{head} moves to the new cell.
+    \item So the first cell added, 3, inherits the \texttt{null()} that \texttt{head} started with, and stays at the end.
+  \end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]{Linked lists: inserting a cell}
+  \begin{columns}[T]
+    \begin{column}{0.48\textwidth}
+      \centering
+      \begin{tikzpicture}
+        % Step 1: the new cell points at the rest of the list
+        \begin{scope}
+          \node[font=\scriptsize\bfseries, anchor=west] at (-0.5,1.25) {1.\ \texttt{new\%next => cur\%next}};
+          \llcell{a}{0,0}{1}
+          \llcell{b}{3.2,0}{2}
+          \llcell[fill=green!25]{n}{1.6,-0.95}{5}
+          \node[llvar] (cur) at (0,0.7) {cur};
+          \node[llvar] (new) at (0.5,-0.95) {new};
+          \draw[llptr] (cur) -- (av.north);
+          \draw[llptr] (new) -- (nv.west);
+          \draw[llptr] (an.center) -- (bv.west);
+          \draw[llptr] (bn.center) -- ++(0.8,0) node[right, llvar] {...};
+          \draw[llptr, red] (nn.center) -| (bv.south);
+        \end{scope}
+        % Step 2: the previous cell points at the new cell
+        \begin{scope}[yshift=-3.1cm]
+          \node[font=\scriptsize\bfseries, anchor=west] at (-0.5,1.25) {2.\ \texttt{cur\%next => new}};
+          \llcell{a}{0,0}{1}
+          \llcell{b}{3.2,0}{2}
+          \llcell[fill=green!25]{n}{1.6,-0.95}{5}
+          \node[llvar] (cur) at (0,0.7) {cur};
+          \node[llvar] (new) at (0.5,-0.95) {new};
+          \draw[llptr] (cur) -- (av.north);
+          \draw[llptr] (new) -- (nv.west);
+          \draw[llptr, gray!60, dashed] (an.center) -- (bv.west);
+          \draw[llptr] (bn.center) -- ++(0.8,0) node[right, llvar] {...};
+          \draw[llptr] (nn.center) -| (bv.south);
+          \draw[llptr, red] (an.center) -| (nv.north);
+        \end{scope}
+      \end{tikzpicture}
+    \end{column}
+
+    \begin{column}{0.52\textwidth}
+      \begin{itemize}
+        \item To insert a cell after the one \texttt{cur} points to, allocate it and change two pointers.
+        \item The order matters: step 1 saves the link to the rest of the list before step 2 overwrites it. In the other order, the new cell points to itself: the rest of the list is leaked, and a walk never ends.
+        \item No other cell is touched or moved, however long the list is.
+      \end{itemize}
+      \lstinputlisting[firstline=25,lastline=29]{linked_list.f90}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+
+\begin{frame}[fragile]{Linked lists: walking through a list}
+  \centering
+  \begin{tikzpicture}
+    \node[llnext, label={[llvar]above:head}] (h) at (0,0) {};
+    \fill (h.center) circle (1.3pt);
+    \llcell{a}{1.7,0}{1}
+    \llcell{b}{3.8,0}{5}
+    \llcell{c}{5.9,0}{2}
+    \llcell{d}{8.0,0}{3}
+    \node[llvar, anchor=west] (nil) at (9.7,0) {null()};
+    \draw[llptr] (h.center) -- (av.west);
+    \draw[llptr] (an.center) -- (bv.west);
+    \draw[llptr] (bn.center) -- (cv.west);
+    \draw[llptr] (cn.center) -- (dv.west);
+    \draw[llptr] (dn.center) -- (nil.west);
+    % cur visits the cells one after another
+    \node[llvar, gray] (cura) at ($(av.south)+(0,-0.8)$) {cur};
+    \node[llvar, text=red] (curb) at ($(bv.south)+(0,-0.8)$) {cur};
+    \node[llvar, gray] (curc) at ($(cv.south)+(0,-0.8)$) {cur};
+    \node[llvar, gray] (curd) at ($(dv.south)+(0,-0.8)$) {cur};
+    \node[llvar, gray] (cure) at (curd -| nil.south) {cur};
+    \draw[llptr, gray, dashed] (cura) -- (av.south);
+    \draw[llptr, red] (curb) -- (bv.south);
+    \draw[llptr, gray, dashed] (curc) -- (cv.south);
+    \draw[llptr, gray, dashed] (curd) -- (dv.south);
+    \draw[llptr, gray, dashed] (cure) -- (nil.south);
+    \draw[llptr, gray] (cura) -- (curb);
+    \draw[llptr, gray] (curb) -- node[below=3pt, llvar, text=black] {cur => cur\%next} (curc);
+    \draw[llptr, gray] (curc) -- (curd);
+    \draw[llptr, gray] (curd) -- (cure);
+  \end{tikzpicture}
+
+  \vspace{0.8em}
+  \begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+      \begin{itemize}
+        \item Start with \texttt{cur} pointing at the first cell.
+        \item \texttt{cur => cur\%next} moves \texttt{cur} one cell forward.
+        \item After the last cell, \texttt{cur} is null, \texttt{associated(cur)} is false, and the loop ends.
+      \end{itemize}
+    \end{column}
+
+    \begin{column}{0.5\textwidth}
+      \lstinputlisting[firstline=32,lastline=36]{linked_list.f90}
+      This prints 1, 5, 2, and 3.
+    \end{column}
+  \end{columns}
+\end{frame}
+
+
+\begin{frame}[fragile]{Linked lists: removing a cell}
+  \begin{columns}[T]
+    \begin{column}{0.48\textwidth}
+      \centering
+      \begin{tikzpicture}
+        % Steps 1 and 2: old points to the cell, and the list bypasses it
+        \begin{scope}
+          \node[font=\scriptsize\bfseries, anchor=west] at (-0.5,1.25) {1.\ \texttt{old => cur\%next}\quad 2.\ \texttt{cur\%next => old\%next}};
+          \llcell{a}{0,0}{1}
+          \llcell{b}{3.2,0}{2}
+          \llcell[fill=red!20]{o}{1.6,-0.95}{5}
+          \node[llvar] (cur) at (0,0.7) {cur};
+          \node[llvar] (old) at (0.5,-0.95) {old};
+          \draw[llptr] (cur) -- (av.north);
+          \draw[llptr] (old) -- (ov.west);
+          \draw[llptr, gray!60, dashed] (an.center) -| (ov.north);
+          \draw[llptr] (on.center) -| (bv.south);
+          \draw[llptr] (bn.center) -- ++(0.8,0) node[right, llvar] {...};
+          \draw[llptr, red] (an.center) -- (bv.west);
+        \end{scope}
+        % Step 3: the cell is freed
+        \begin{scope}[yshift=-3.1cm]
+          \node[font=\scriptsize\bfseries, anchor=west] at (-0.5,1.25) {3.\ \texttt{deallocate(old)}};
+          \llcell{a}{0,0}{1}
+          \llcell{b}{3.2,0}{2}
+          \llcell[fill=white, dashed, draw=gray!60, text=gray!60]{o}{1.6,-0.95}{5}
+          \draw[red, thick] (ov.south west) -- (on.north east) (ov.north west) -- (on.south east);
+          \node[llvar] (cur) at (0,0.7) {cur};
+          \draw[llptr] (cur) -- (av.north);
+          \draw[llptr] (an.center) -- (bv.west);
+          \draw[llptr] (bn.center) -- ++(0.8,0) node[right, llvar] {...};
+        \end{scope}
+      \end{tikzpicture}
+    \end{column}
+
+    \begin{column}{0.52\textwidth}
+      \begin{itemize}
+        \item Keep a pointer to the cell (\texttt{old}), let the list bypass it, and then free it.
+        \item Without \texttt{old}, nothing would point to the cell after step 2: a memory leak.
+        \item To free a whole list, remove the first cell until \texttt{head} is null.
+      \end{itemize}
+      \lstinputlisting[firstline=39,lastline=42,belowskip=0pt]{linked_list.f90}
+      \lstinputlisting[firstline=45,lastline=49,aboveskip=4pt]{linked_list.f90}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+
+\section{Custom Operators}
+
+\begin{frame}
+	\centering
+	\Huge \textbf{Custom Operators}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Arithmetic with derived types}
+  \begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+      \begin{itemize}
+        \item Fortran allows you to define complex derived types.
+        \item But using them directly for calculations leads to cumbersome code (and bugs, lots and lots of bugs).
+        \item Here \texttt{c = s*a + b} has to be written out component by component.
+        \item The examples in this section use a 2D vector to keep the code short.
+      \end{itemize}
+    \end{column}
+
+    \begin{column}{0.5\textwidth}
+    \lstinputlisting[firstline=1,lastline=6]{vec_components.f90}
+    \lstinputlisting[firstline=8,lastline=17]{vec_components.f90}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Step 1: functions}
+   Code can be simplified (and made more robust) by using functions.
+  \begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+          \lstinputlisting[firstline=1,lastline=18]{vec_functions.f90}
+    \end{column}
+
+    \begin{column}{0.5\textwidth}
+    \lstinputlisting[firstline=20,lastline=29]{vec_functions.f90}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Step 2: operators}
+  \begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+          \lstinputlisting[firstline=1,lastline=22,aboveskip=0pt,belowskip=0pt]{vec_operators.f90}
+    \end{column}
+
+    \begin{column}{0.5\textwidth}
+    \lstinputlisting[firstline=24,lastline=33,aboveskip=0pt]{vec_operators.f90}
+    And defining custom operators can make your code even cleaner: the program now says \mbox{\texttt{c = s*a + b}}.
+    \end{column}
+  \end{columns}
+\end{frame}
+
+
+\begin{frame}[fragile]
+  \frametitle{How to define a custom operator}
+  Custom operators are defined with an \texttt{interface operator} block, which should be placed in a module.
+  \vspace*{2mm}
+
+  \begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+      \begin{itemize}
+            \item A standard operator (\texttt{+}, \texttt{*}, \texttt{==}, \ldots)
+      \end{itemize}
+\begin{lstlisting}
+interface operator(+)
+   module procedure sumvv
+end interface
+\end{lstlisting}
+    \end{column}
+
+    \begin{column}{0.5\textwidth}
+      \begin{itemize}
+            \item A new named operator, such as \texttt{.dot.}
+      \end{itemize}
+\begin{lstlisting}
+interface operator(.dot.)
+   module procedure dotvv
+end interface
+\end{lstlisting}
+    \end{column}
+  \end{columns}
+
+  \vspace*{2mm}
+  The functions implementing the operators are defined later in the module after the \texttt{contains} keyword.
+\end{frame}
+
+
+\begin{frame}[fragile]
+  \frametitle{Rules for custom operators}
+  \begin{columns}[T]
+    \begin{column}{0.48\textwidth}
+      \begin{itemize}
+        \item An operator function takes one argument (unary) or two (binary), all \texttt{intent(in)}.
+        \item You can extend the standard operators to your own types, but you cannot change what they do for the intrinsic types.
+        \item Extended standard operators keep their usual precedence, so \texttt{s*a + b} works as expected.
+        \item A named binary operator such as \texttt{.dot.} has the lowest precedence of all (a named unary operator has the highest). Use parentheses.
+      \end{itemize}
+    \end{column}
+
+    \begin{column}{0.52\textwidth}
+      \lstinputlisting[firstline=64,lastline=74]{vec_dot.f90}
+      The full module, with \texttt{+}, \texttt{-}, \texttt{*}, \texttt{/}, and \texttt{.dot.}, is in \texttt{examples/ex07\_operators}.
+    \end{column}
+  \end{columns}
+\end{frame}
+
+
+\section{Exercises}
+
+\begin{frame}{Exercises: a star catalogue}
+  \begin{block}{Tasks}
+    \begin{enumerate}
+      \item Write a module with a type \texttt{vector3d} and a type \texttt{star} that holds a name, a mass, and a position (a \texttt{vector3d}).
+      \item In a main program, create an array of three stars with constructors, and print the name of each star.
+      \item Print the total mass of the stars. Hint: \texttt{stars\%mass} is an array.
+      \item Add a function \texttt{centre\_of\_mass(stars)} to the module that returns a \texttt{vector3d}, and test it.
+      \item Try to print one whole \texttt{star} with \texttt{print *}. Then make the name \texttt{character(len=:), allocatable} and try again. What changes?
+    \end{enumerate}
+  \end{block}
+\end{frame}
+
+
+\begin{frame}{Exercises: vector operators}
+  \begin{block}{Tasks}
+    \begin{enumerate}
+      \item Write a module with a type \texttt{vector3d} and the operators \texttt{+} and \texttt{-} for two vectors, and \texttt{*} for a real times a vector.
+      \item Add the named operators \texttt{.dot.} and \texttt{.cross.} for the scalar and vector products.
+      \item Test them: compute \mbox{\texttt{c = a .cross. b}} for two vectors of your choice, and check that \mbox{\texttt{c .dot. a}} and \mbox{\texttt{c .dot. b}} are both zero.
+      \item What does \mbox{\texttt{2.0 * a .dot. b}} compute? And \mbox{\texttt{1.0 + a .dot. b}}? Explain both.
+      \item Make the operator functions \texttt{elemental}. What can you now do with an array of vectors?
+    \end{enumerate}
+  \end{block}
+\end{frame}
+
+
+\end{document}
