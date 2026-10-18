@@ -29,11 +29,13 @@ Now, after the second lecture, your directory tree should look like:
 ## Students
 
 | Name | Directory |
-| Iván Pérez Montesinos | pmi |
-| Carlos Manuel García Montalván | cmgm |
+|--|--|
 | Miguel Barchín Rubio | brm       |
 | Jorge Faci Descartín | fdj       |
+| Carlos Manuel García Montalván | gmcm |
 | Julio Garcia Piñeiro | gpj       |
+| Pedro Martinez-Sebastia | msp |
+| Iván Pérez Montesinos | pmi |
 | Alejandro Trujillo Ramos | tra   |
 ---
 
