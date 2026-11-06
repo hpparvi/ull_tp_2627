@@ -1,0 +1,44 @@
+ACTUALIZACIONES:
+
+28/10/2026
+
+- SE HA AÑADIDO GEOMETRY.F90 CON LAS OPERACIONES ENTRE VECTOR Y POINT SOLICITADAS EN EL EJERCICIO.
+
+04/11/2026
+
+- SE HA MODIFICADO GEOMETRY.F90 PARA AÑADIR LA FUNCIÓN DISTANCE
+- SE HAN AÑADIDO ex1.f90, particle.f90, Sphere.f90, read_input.f90, gravitational_acceleration.f90
+- ex1.f90: Main code
+- particle.f90: module in which is defined the type particle3d (particle3d%p: point3d, Position of the particle, particle3d%v: vector3d, velocity of the particle, particle%m: real64, mass) 
+- read_input.f90: module with the function input(Name_IC) that reads the input and generate an array of particle3d
+. gravitational_acceleration.f90: module in which is define  the function acceleration(particles,ident) return the acceleration of particles(ident) due to the others particles calculated one by one (algorithm N**2)
+
+Notas: De momento no existe un makefile, si se desea correr el código debe hacerse de la siguiente manera:
+	1- Compila y ejecuta Sphere.f90:
+	
+		gfortran Sphere.f90 -o Sphere
+		./Sphere
+		
+		Esto genera un archivo Sphere.txt con las condiciones iniciales que usa la simulación
+		
+	2- Compila el código de la siguiente manera:
+	
+		gfortran geometry.f90 particle.f90 gravitational_acceleration.f90 read_input.f90 ex1.f90 -o ex1
+	
+	En este orden compila los módulos que uso en ex1.f90 y por ultimo genera el ejecutable ex1
+	
+	3- Ejecuta ex1:
+	
+		./ex1
+		
+	Esto genera un results.txt con el formato que pide el ejercicio.
+	
+	No recomiendo añadir muchos pasos (en ex1.f90, todavia no está dentro del setup) porque, de momento el programa guarda cada paso de la simulación, lo que puede hacer muy tedioso leerlo o guardarlo.
+	
+06/11/2026
+
+- SE HAN CORREGIDO ERRORES EN ALGUNOS ARCHIVOS .f90 QUE GENERABAN WARNINGS AL COMPILAR
+- SE HA ACTUALIZADO read_input.f90 y sphere.f90 PARA QUE SE AJUSTEN AL FORMATO DE input.dat QUE SE USA DE EJEMPLO.
+- AHORA EL NOMBRE DEL ARCHIVO QUE SE USE COMO INPUT DEBE SER ESPECIFICADO EN LA LINEA EN LA QUE SE EJECUTA EL EJECUTABLE. EJEMPLO: $./ex1 input.dat
+- SE HA AÑAIDO makefile PARA COMPILAR CON EL COMANDO $make AUTOMATICAMENTE EL PROGRAMA, Y QUE ADEMÁS ELIMINA LOS ARCHIVOS INTERMEDIOS .MOD Y .O 
+
