@@ -28,8 +28,18 @@ program sphere
    integer, allocatable :: seed(:)
    real(real64) :: time_step, snap_step, total_time
    real(real64), allocatable :: x(:,:), r(:) 
-
-   n = 10000
+   character(len=100) :: aux
+   
+   
+      if (command_argument_count() /= 1) then
+      print "(a)", "Usage: ./Sphere <n_particles>"
+      stop 1
+   end if
+   
+   call get_command_argument(1, aux)
+   
+   read(aux,'(i5)') n 
+   
    time_step = 0.001_real64
    snap_step = 0.01_real64
    total_time= 0.1_real64

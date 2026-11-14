@@ -41,8 +41,10 @@ Notas: De momento no existe un makefile, si se desea correr el código debe hace
 - AHORA EL NOMBRE DEL ARCHIVO QUE SE USE COMO INPUT DEBE SER ESPECIFICADO EN LA LINEA EN LA QUE SE EJECUTA EL EJECUTABLE. EJEMPLO: $./ex1 input.dat
 - SE HA AÑAIDO makefile PARA COMPILAR CON EL COMANDO $make AUTOMATICAMENTE EL PROGRAMA, Y QUE ADEMÁS ELIMINA LOS ARCHIVOS INTERMEDIOS .MOD Y .O 
 
-07/11/2026
-- SE HA CONFIGURADO LA PARALELIZACIÓN DEL BUCLE PRINCIPAL EN "ex1.f90" Y EN "makefile" CON OPENMP. SE EJECUTA EN EL BUCLE INTERNO DESTINADO A LAS PARTÍCULAS.
-- SE HA AÑADIDO UN "input.dat".
-- EN "ex1.f90" SE HAN AÑADIDOS VARIABLES QUE PERMITE MEDIR EL TIEMPO QUE TARDA EL PROGRAMA EN EJECUTARSE, EL VALOR SE MUESTRA AL TERMINAR LA SIMULACIÓN. ESTO SE USARÁ PARA HACER EL ESTUDIO TEMPORAL DE LA PARALELIZACIÓN.
-
+14/11/2026
+ATENCIÓN: Esta podría ser la última versión, agradecería comentarios.
+- Se han realizado pequeñas modificaciones a Sphere.f90 y a ex1.f90 incluido algunos comentarios.
+- Ahora el número de partículas generadas cuando se ejecuta Sphere.f90 debe ser incluido a la hora de ejecutarlo como linea de comando.
+- Se han incluido las sugerencias de Miguel, el segundo bicle se ha dividido en 3 para evitar superposiciones indeseadas
+- El comando make genera dos ejecutables, uno sin paralelizacion y otro con paralelizacion. Además ahora no borra los *.o y *.mod a no ser que se ejecute make clean.
+- Se ha añadido README.md 
