@@ -38,8 +38,6 @@ module read_input
       ! Loop to read particles from the file
       do i = 1, N + 4
 
-         if (i == 4) cycle
-
          if (i == 1) then
 
             read(1, *) time_step
@@ -51,7 +49,10 @@ module read_input
          else if (i == 3) then
 
             read(1, *) total_time
-
+         
+         else if (i == 4) then
+            read(1, *) N
+         
          else if (i > 4) then 
 
             read(1, *) particles(i-4)%m, &
