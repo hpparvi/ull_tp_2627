@@ -45,6 +45,6 @@ Notas: De momento no existe un makefile, si se desea correr el código debe hace
 ATENCIÓN: Esta podría ser la última versión, agradecería comentarios.
 - Se han realizado pequeñas modificaciones a Sphere.f90 y a ex1.f90 incluido algunos comentarios.
 - Ahora el número de partículas generadas cuando se ejecuta Sphere.f90 debe ser incluido a la hora de ejecutarlo como linea de comando.
-- Se han incluido las sugerencias de Miguel, el segundo bicle se ha dividido en 3 para evitar superposiciones indeseadas
+- El segundo bucle se ha dividido en tres, ahora las posiciones de todas las partículas se actualizan antes de volver a calcular la aceleración, como sugerencia de Miguel.
 - El comando make genera dos ejecutables, uno sin paralelizacion y otro con paralelizacion. Además ahora no borra los *.o y *.mod a no ser que se ejecute make clean.
 - Se ha añadido README.md 

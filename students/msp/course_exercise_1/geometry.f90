@@ -1,5 +1,5 @@
-! Here are the vector3d and point 3d that will be used in the main
-! Programs and other modules:
+! Here are defined vector3d and point3d that will be used in the main
+! program and other modules:
 
 module geometry
 

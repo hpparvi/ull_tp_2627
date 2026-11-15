@@ -16,7 +16,7 @@ program ex1
    implicit none
 
    !!!!!!!!!!!!!!!!!
-   ! CREATING EACH VARIABLE USED FORWARD
+   ! CREATING VARIABLES
    !!!!!!!!!!!!!!!!!
 
    integer :: N, ident,n_steps, step, unit ! Loops integer and ios
@@ -25,9 +25,9 @@ program ex1
    type(particle3d), allocatable :: particles(:) ! allocatable particles
    character(len=100) :: name_IC ! IC file name
    
-   integer(int64) :: t_start, t_end, rate
+   integer(int64) :: t_start, t_end, rate ! Simulation time
 
-   call system_clock(t_start, rate) ! lets start
+   call system_clock(t_start, rate) ! lets start counting time
    
    !!!!!!!!!!!!!!!!
    ! READING SETUP
@@ -42,12 +42,12 @@ program ex1
    
    
    particles = input(name_IC, N, dt, snap_step,total_time) ! FUNCTION IN MODULE INSIDE read_input.f90
-   sim_time = 0.0_real64
+   sim_time = 0.0_real64 ! set simulation time as 0.0 s
    ! Particles is an array of particle3d type, defined in module particle.f90
    ! this is allocated in input function which read the file.
 
-   n_steps = int( total_time / dt ) ! become the real into an integer
-   ! print *, particles(:)%p
+   n_steps = int( total_time / dt ) ! become the real time into an integer
+
    ! Allocate acceleration
    allocate(a(N))
    
@@ -67,15 +67,23 @@ program ex1
    ! Opening the file in which data is saved: If it doesn't exist it is generated!
    open(newunit=unit, file="results.dat", status="replace", action="write")
    
-   ! write (unit , *) 0.0_real64, particles(1:N)%p ! save state at t = 0
    ! 2- Main loops
 
    ! First loop, over time
    do step = 1, n_steps
    
-      ! Second loop, over particles. divided in three to avoid parallelitation issues
+      ! save actual simulation time and positions in one line inside results.dat
+      
+      if (dt * step > sim_time) then
+         write (unit , *) dt * step - dt, particles(1:N)%p ! Save results
+         sim_time = sim_time + snap_step ! actualize time
+         ! when saving time, the "dt* step- dt" it's because we are 
+         ! saving it before the time step is done.
+      end if
+      
+      ! Second loop, over particles. divided in three to avoid parallelization issues
       !$omp parallel do
-      do ident = 1, N       ! Parallelitation have to be done in the particles loops, not in time!
+      do ident = 1, N       ! Parallelization have to be done in the particles loops, not in time!
          particles(ident)%v = particles(ident)%v + a(ident) * dt / 2.0_real64
          particles(ident)%p = particles(ident)%p + particles(ident)%v * dt
       end do
@@ -93,12 +101,6 @@ program ex1
 
       ! end of parallel zone
       
-      ! save actual simulation time and positions in one line inside results.txt
-      
-      if (dt * step > sim_time) then
-         write (unit , *) dt* step, particles(1:N)%p ! Save results
-         sim_time = sim_time + snap_step ! actualize time
-      end if
    end do
    
    close(unit) ! close save file

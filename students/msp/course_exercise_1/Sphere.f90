@@ -1,14 +1,14 @@
 ! this program create a IC in a sphere with radius 1, initial position 
-! inside the sphere, initial velocities in three coordinates in betewn
+! inside the sphere, initial velocities in three coordinates in between
 ! 0 to 1 and each particle with mass equal to 1 .
 
 ! it's create 7 random numbers for a single particle. r
-! define the radius, the first 3, are the three define the three coordinates
+! define the radius, the first three, define the three coordinates
 ! from the vector position, the last 3 are the velocities.
 
 ! to calculate de position of a single particle the next calculation is donne:
-! r * position/|position|. ussing this we assure the particle position 
-! is on a sphere with radius 1 and furthermore, it's homogenious.
+! r * position/|position|. using this we assure the particle position 
+! is on a sphere with radius 1 and furthermore, it's homogeneous.
 
 program sphere
 
@@ -30,8 +30,10 @@ program sphere
    real(real64), allocatable :: x(:,:), r(:) 
    character(len=100) :: aux
    
-   
-      if (command_argument_count() /= 1) then
+   !!!!!!!!!
+   ! Set up
+   !!!!!!!!!
+   if (command_argument_count() /= 1) then
       print "(a)", "Usage: ./Sphere <n_particles>"
       stop 1
    end if
@@ -65,7 +67,7 @@ program sphere
    ! Next line become rand (0,1) in rand(-1,1)
    x(:,2:7) = 2*x(:,2:7) - 1.0_real64 
 
-   ! changing seed for the radious.
+   ! changing seed for the radius.
    seed = 11
    call random_seed(put=seed)
 
@@ -87,7 +89,6 @@ program sphere
    write (unit , *) snap_step
    write (unit , *) total_time
    write (unit , *) n
-   ! write (unit , *) "ID	", "X	", "Y	", "Z	", "VX	", "VY	", "VZ	", "M	"
    
    ! Loop over particles
    do ident = 1, n

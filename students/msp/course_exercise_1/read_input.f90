@@ -7,7 +7,7 @@ module read_input
    implicit none
    
    contains
-   
+   ! This function reads the input file and returns an array particle type.
       function input(Name_txt, N, time_step, snap_step, total_time) result(particles)
 
       character(len=*), intent(in) :: Name_txt
@@ -16,10 +16,8 @@ module read_input
       real(real64), intent(out) :: time_step, snap_step, total_time
       integer, intent(out) :: N
 
-      ! Read the set up: for the moment particles position, velocity an mass
+      ! Read the set up: particles position, velocity and mass
       open(unit=1, file=Name_txt, status="old", action="read")
-
-      ! read(1, *) ! Skip Header
 
       ! Read number of particles
       N = - 4 ! Exclude 4 first lines.
