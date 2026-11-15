@@ -5,7 +5,7 @@ Use make inside the directory in which is saved "ex1.f90". Two executable will b
 ## checking times
 1. Generate the input file using the executable "sphere" first you should compile it. Once is compiled execute it using: $./sphere <n_particles>
 2. Execute $ ./ex1 <Input.dat>. This gives the executing time when the run is finalized and a results.dat
-3. Executed with 1000, 2000, 000, 10000. Results:
+3. Executed with 1000, 2000, 5000, 10000. Results:
 
 Times:
 
