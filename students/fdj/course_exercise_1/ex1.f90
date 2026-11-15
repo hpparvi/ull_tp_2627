@@ -1,6 +1,7 @@
 ! Direct N-body simulation with the leapfrog (kick-drift-kick) integrator.
 !
-! Reads the simulation setup from standard input:
+! Reads the simulation setup from the file given as the first command-line
+! argument:
 !
 !   dt                  time step
 !   dt_out              time between outputs
@@ -8,12 +9,30 @@
 !   n                   number of particles
 !   m x y z vx vy vz    mass, position, and velocity (one line per particle)
 !
-! and prints the positions of all the particles every dt_out. The units
-! are chosen so that the gravitational constant G = 1.
-! 
-!  make
-!   ./leapfrog input.dat        (serial)
-!   ./leapfrog_omp input.dat    (OpenMP, OMP_NUM_THREADS=4 ./leapfrog_omp ...)
+! and writes the positions of all the particles to output.dat every dt_out.
+! Each line has the form
+!
+!   t  p1a p1b p1c  p2a p2b p2c  ...  pna pnb pnc
+!
+! and the first line is the initial state (t = 0). The units are chosen so
+! that the gravitational constant G = 1.
+!
+! The accelerations are computed with a loop over all the pairs (i, j), j /= i,
+! in which iteration i writes only to a(i). This avoids the race condition of
+! the loop over pairs j > i, where two threads could update the same a(j), at
+! the cost of twice as many interactions. The loop is parallelised with
+! OpenMP; without -fopenmp the directives are comments and the code is serial.
+!
+! Build and run (see the Makefile and README.md):
+!
+!   make
+!   ./exercise_1 input.dat                         (serial)
+!   OMP_NUM_THREADS=4 ./exercise_1_omp input.dat   (OpenMP, 4 threads)
+!
+! The OpenMP version also prints the wall time of the simulation loop to
+! standard error. Set dt_out = t_end when timing, so that writing the output
+! does not dominate.
+
 module physics
   use particle
   implicit none
@@ -24,10 +43,16 @@ module physics
       type(particle3d), dimension(n_part), intent(in):: part
       
       type(vector3d) :: rji
-      real(dp) :: r3
+      real(dp) :: r2, r3
       integer(int64) :: i, j
 
       type(vector3d), dimension(n_part) :: a
+
+
+      ! Two possible loops. Benchmarks show that the first one is the fastest,
+      ! but I coudn't conclude why.
+
+      ! Keep one of them commented while the other one is active for a correct usage.
 
       !$omp parallel do default(none) &
       !$omp shared(part, a, n_part) private(j, rji, r3)
@@ -41,6 +66,22 @@ module physics
         end do
       end do
       !$omp end parallel do
+
+      ! !$omp parallel do default(none) &
+      ! !$omp shared(part, a, n_part) private(j, rji, r2, r3)
+      ! do i = 1, n_part
+      !   a(i) = vector3d(0.0, 0.0, 0.0)
+      !   do j = 1, n_part
+      !     if (j == i) cycle
+      !     rji  = part(j)%p - part(i)%p
+      !     r2   = rji%x**2 + rji%y**2 + rji%z**2
+      !     r3   = r2 * sqrt(r2)
+      !     a(i) = a(i) + (part(j)%m / r3) * rji
+      !   end do
+      ! end do
+      ! !$omp end parallel do
+
+
     end function acceleration
 end module physics
 
