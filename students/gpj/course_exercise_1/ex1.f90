@@ -67,6 +67,9 @@ program ex1
 contains
 
     ! Compute the accelerations of the particles due to their mutual gravitational attraction.
+    ! The loop over i is parallelised with OpenMP. Each thread only writes to a(i) of its
+    ! own particles, so two threads never write to the same element (no race condition).
+    ! This needs the full loop over j (skipping j == i), so each pair is computed twice.
     subroutine accelerations(b, a)
         type(particle3d), intent(in) :: b(:)
         type(vector3d), intent(out) :: a(:)
@@ -75,16 +78,18 @@ contains
         integer :: i, j
 
         a = vector3d(0.0_dp, 0.0_dp, 0.0_dp)
+        !$omp parallel do private(j, rji, r2, r3) schedule(static)
         do i = 1, size(b)
-            do j = i + 1, size(b)
+            do j = 1, size(b)
+                if (j == i) cycle
                 rji = b(j)%p - b(i)%p
                 r2 = rji%x**2 + rji%y**2 + rji%z**2
                 r3 = r2 * sqrt(r2)
                 a(i) = a(i) + rji * (b(j)%m / r3)
-                a(j) = a(j) - rji * (b(i)%m / r3)
             end do
         end do
-    end subroutine accelerations    
+        !$omp end parallel do
+    end subroutine accelerations
 
     ! Write one line of the output file, with the time and the state of all particles.
     subroutine write_state(u, t, b)

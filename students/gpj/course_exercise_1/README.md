@@ -13,7 +13,7 @@ Still in progress (OpenMP and timing study missing).
 ## Compile and run
 
 ```bash
-make          # compile
+make          # compile ex1 (serial) and ex1_omp (OpenMP)
 make run      # compile (if needed) and run with input.dat
 make clean    # remove the compiled files and output.dat
 ```
@@ -21,7 +21,7 @@ make clean    # remove the compiled files and output.dat
 Or run it with any other input file:
 
 ```bash
-./ex1 input.dat
+OMP_NUM_THREADS=4 ./ex1_omp input.dat
 ```
 
 Each line of `output.dat` is `t p1x p1y p1z ... pnx pny pnz`.
