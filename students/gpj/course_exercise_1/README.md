@@ -1,14 +1,30 @@
 # Course exercise 1: N-body simulation
 
-Gravity simulation of N particles using the leapfrog method.
-Still in progress (OpenMP and timing study missing).
+Gravity simulation of N particles using the leapfrog method, parallelised with OpenMP.
 
 ## Files
 
 - `geometry.f90`: module with the types `point3d` and `vector3d`, their operators and `distance`.
 - `particle.f90`: module with the type `particle3d` (position `p`, velocity `v`, mass `m`).
 - `ex1.f90`: the main program. Reads the input file, runs the simulation and writes `output.dat`.
-- `Makefile`: compiles the modules and the program in the right order.
+- `Makefile`: compiles the modules and the program in the right order, with and without OpenMP.
+- `timing.sh`: runs the timing study.
+- `timings.txt`: results of the timing study.
+
+`input.dat` (three bodies on a figure-eight orbit) and `random_sphere.f90` are in `lectures/exercise_1/`.
+
+## How it works
+
+1. `ex1` reads `dt`, `dt_out`, `t_end`, `n` and the particles from the input file.
+2. It computes the accelerations at t = 0 in the subroutine `accelerations`.
+3. Then, for each time step (leapfrog, kick-drift-kick):
+   - kick: `v = v + a dt/2`
+   - drift: `p = p + v dt`
+   - compute the new accelerations from the new positions
+   - kick: `v = v + a dt/2`
+4. Every `dt_out` it writes the positions into `output.dat`.
+
+The force calculation takes almost all the time, so it is the part parallelised with OpenMP (`!$omp parallel do` over the particles). Each thread only computes and writes the acceleration of its own particles, so two threads never write to the same place.
 
 ## Compile and run
 

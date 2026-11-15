@@ -1,4 +1,18 @@
-! Direct N-body simulation with the leapfrog integrator.
+! Direct N-body simulation with the leapfrog (kick-drift-kick) integrator.
+!
+! Usage:  ./ex1 <input file>       (or ./ex1_omp for the OpenMP version)
+!
+! The input file contains:
+!   dt                  time step
+!   dt_out              time between outputs
+!   t_end               end time
+!   n                   number of particles
+!   m x y z vx vy vz    mass, position and velocity (one line per particle)
+!
+! The program writes output.dat, with one line per output time (t = 0 included):
+!   t p1x p1y p1z ... pnx pny pnz
+!
+! Units are chosen so that G = 1.
 
 program ex1
     use iso_fortran_env, only: error_unit
@@ -63,7 +77,7 @@ program ex1
     end do
 
     close(u_out)
-        
+
 contains
 
     ! Compute the accelerations of the particles due to their mutual gravitational attraction.
