@@ -6,6 +6,7 @@ program ex1
   implicit none
 
   integer :: i, j, n, step, n_steps, out_every, ios
+  integer :: u_in, u_out, u_energy
   real(dp) :: dt, t_end, dt_out, r2, r3
   !softening length squared (eps^2 = 1e-6) to prevent singularities during close encounters
   real(dp), parameter :: eps2 = 1.0e-6_dp
@@ -38,31 +39,31 @@ program ex1
      end if
   end if
 
-  open(unit=10, file=trim(input_file), status='old', action='read', iostat=ios)
+  open(newunit=u_in, file=trim(input_file), status='old', action='read', iostat=ios)
   if (ios /= 0) then
      print *, "Error opening input file: ", trim(input_file)
      stop 1
   end if
 
-  read(10, *) dt
-  read(10, *) dt_out
-  read(10, *) t_end
-  read(10, *) n
+  read(u_in, *) dt
+  read(u_in, *) dt_out
+  read(u_in, *) t_end
+  read(u_in, *) n
 
   allocate(bodies(n))
   allocate(a(n))
 
   do i = 1, n
-     read(10, *) bodies(i)%m, bodies(i)%p%x, bodies(i)%p%y, bodies(i)%p%z, &
+     read(u_in, *) bodies(i)%m, bodies(i)%p%x, bodies(i)%p%y, bodies(i)%p%z, &
                  bodies(i)%v%x, bodies(i)%v%y, bodies(i)%v%z
   end do
-  close(10)
+  close(u_in)
 
-  open(unit=20, file='output.dat', status='replace', action='write')
+  open(newunit=u_out, file='output.dat', status='replace', action='write')
   ! Open secondary diagnostic file only if the energy flag is active
   if (calc_energy) then
-     open(unit=30, file='energy.dat', status='replace', action='write')
-     write(30, '(a)') "# time          E_kin           E_pot           E_tot           rel_error"
+     open(newunit=u_energy, file='energy.dat', status='replace', action='write')
+     write(u_energy, '(a)') "# time          E_kin           E_pot           E_tot           rel_error"
   end if
 
   n_steps = nint(t_end / dt)
@@ -108,7 +109,7 @@ program ex1
         end do
      end do
      e_init = e_kin + e_pot
-     write(30, '(f12.6, 4(1x, es15.7))') 0.0_dp, e_kin, e_pot, e_init, 0.0_dp
+     write(u_energy, '(f12.6, 4(1x, es15.7))') 0.0_dp, e_kin, e_pot, e_init, 0.0_dp
   end if
 
   ! leapfrog integration loop
@@ -156,11 +157,11 @@ program ex1
 
      ! write output in the following format: t p1x p1y p1z p2x p2y p2z ... pnx pny pnz
      if (mod(step, out_every) == 0) then
-        write(20, '(f12.6)', advance='no') step * dt
+        write(u_out, '(f12.6)', advance='no') step * dt
         do i = 1, n
-           write(20, '(3(1x, es15.7))', advance='no') bodies(i)%p%x, bodies(i)%p%y, bodies(i)%p%z
+           write(u_out, '(3(1x, es15.7))', advance='no') bodies(i)%p%x, bodies(i)%p%y, bodies(i)%p%z
         end do
-        write(20, *) "" ! Move to the next line
+        write(u_out, *) "" ! Move to the next line
 
         !compute and log current energy state at output steps if enabled
         if (calc_energy) then
@@ -181,12 +182,12 @@ program ex1
            end do
            e_tot = e_kin + e_pot
            rel_err = (e_tot - e_init) / abs(e_init)
-           write(30, '(f12.6, 4(1x, es15.7))') step * dt, e_kin, e_pot, e_tot, rel_err
+           write(u_energy, '(f12.6, 4(1x, es15.7))') step * dt, e_kin, e_pot, e_tot, rel_err
         end if
      end if
   end do
 
-  close(20)
-  if (calc_energy) close(30)
+  close(u_out)
+  if (calc_energy) close(u_energy)
 
 end program ex1
