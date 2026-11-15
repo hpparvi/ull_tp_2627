@@ -1,0 +1,22 @@
+# build
+/build/
+*.o
+*.mod
+
+# executables
+/exercise_1
+/exercise_1_omp
+/random_sphere
+*.out
+*.exe
+
+# generated data
+/inputs/
+/outputs/
+output.dat
+raw_*.dat
+out_*.dat
+test.dat
+
+# timings file
+timings.md
