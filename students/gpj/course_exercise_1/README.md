@@ -26,6 +26,39 @@ OMP_NUM_THREADS=4 ./ex1_omp input.dat
 
 Each line of `output.dat` is `t p1x p1y p1z ... pnx pny pnz`.
 
+## Timing study
+
+`timing.sh` creates the initial conditions with `random_sphere.f90` (seed 42, so every run uses the same particles), sets `dt_out = t_end` so that writing the output does not count, and runs `ex1_omp` for N = 1000, 2000, 5000 and 10000 with 1, 2, 4 and 8 threads (100 time steps each). The results are in `timings.txt`.
+
+Each case is run 3 times and the minimum time is kept. On a laptop the times change a lot from one run to the next (other programs, CPU frequency, fast or slow cores), and the minimum is the run with the least interference. The laptop was plugged in and in maximum performance mode.
+
+Speed-up = time with 1 thread / time with n threads.
+
+| N | Threads | Time (s) | Speed-up |
+|---|---|---|---|
+| 1000 | 1 | 0.59 | 1.00 |
+| 1000 | 2 | 0.34 | 1.72 |
+| 1000 | 4 | 0.40 | 1.49 |
+| 1000 | 8 | 0.24 | 2.41 |
+| 2000 | 1 | 2.42 | 1.00 |
+| 2000 | 2 | 1.37 | 1.76 |
+| 2000 | 4 | 1.41 | 1.71 |
+| 2000 | 8 | 0.89 | 2.71 |
+| 5000 | 1 | 13.68 | 1.00 |
+| 5000 | 2 | 8.69 | 1.57 |
+| 5000 | 4 | 8.35 | 1.64 |
+| 5000 | 8 | 5.88 | 2.33 |
+| 10000 | 1 | 59.84 | 1.00 |
+| 10000 | 2 | 43.49 | 1.38 |
+| 10000 | 4 | 33.30 | 1.80 |
+| 10000 | 8 | 24.42 | 2.45 |
+
+What we see:
+
+- **The time grows as N²**: doubling N makes it about 4 times slower (0.59 s → 2.42 s), as expected because every step computes all the pairs of particles.
+- **The speed-up is far from ideal** (about 1.7 with 2 threads and 2.5 with 8). My laptop CPU (i7-1255U) has only 2 fast cores and 8 slower ones, so with more than 2 threads some of them run on slow cores, and with `schedule(static)` the slowest thread sets the total time.
+- To avoid race conditions, the OpenMP version computes every pair twice (each thread only writes its own `a(i)`), but it gives exactly the same results with and without OpenMP.
+
 ## Test
 
 With `input.dat` the three bodies follow a figure-eight orbit, and it repeats correctly.
