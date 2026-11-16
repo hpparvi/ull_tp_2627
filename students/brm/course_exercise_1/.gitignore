@@ -1,0 +1,11 @@
+# Compiled Fortran objects and modules
+*.o
+*.mod
+
+# Executables
+ex1
+ex1_omp
+random_sphere
+
+# Generated data files
+*.dat
