@@ -1,8 +1,7 @@
-include 'kinds.f90'
-
 module Geometry
-use kinds
 implicit none
+
+integer, parameter :: dp = selected_real_kind(15, 307)
 
 type :: vector3d
   real(dp) :: x, y, z
@@ -35,6 +34,14 @@ end interface
 interface operator(*)
   module procedure mulrv, mulvr
 end interface
+
+
+
+!   We will also need this for the parallel reduction on 
+!   acceleratrions since it doesn't support vector3d's:
+
+!$OMP DECLARE REDUCTION(+: vector3d: omp_out = omp_out + omp_in) &
+!$OMP   INITIALIZER(omp_priv = vector3d(0.0_dp, 0.0_dp, 0.0_dp))
 
 
 
@@ -95,6 +102,14 @@ contains
     subpv = point3d(a%x - b%x, a%y - b%y, a%z - b%z)
   end function
   
+  !
+  !    Different products
+  !
+  !---------------------------------------------------------------------
+  !
+  !    Between two vectors:
+  !
+  
   elemental real(dp) function dot_prod(a,b)
     type(vector3d), intent(in) :: a, b
     dot_prod = a%x * b%x + a%y * b%y + a%z * b%z
@@ -104,6 +119,10 @@ contains
     type(vector3d), intent(in) :: a, b
     cross_prod = vector3d(a%y*b%z - a%z*b%y, a%z*b%x - a%x*b%z, a%x*b%y - a%y*b%x)
   end function
+  
+  !
+  !    Between real and vector:
+  !
   
   elemental type(vector3d) function mulrv(a, b)
     real(dp), intent(in) :: a
@@ -117,8 +136,14 @@ contains
     mulvr = vector3d(a*b%x, a*b%y, a*b%z)
   end function
   
+  !
+  !---------------------------------------------------------------------
+  !
+  !    Finally, the function that calculates distance between points
+  !
+  
   real(dp) function distance(a,b)
-    type(vector3d), intent(in) :: a, b
+    type(point3d), intent(in) :: a, b
     type(vector3d) :: c
     c = a - b
     distance = sqrt( c.dot.c )
